@@ -335,7 +335,11 @@ def add_board_files(answers):
     if port == "unix":
         return
 
-    board = answers["template_board"]
+    board = answers.get("template_board")
+    if not board:
+        warn(f"No board selected for the {port} port.")
+        raise SystemExit(1)
+
     dest = PROJECT_DIR / "src" / "system" / answers["project_board_name"]
     src = PROJECT_DIR / "src" / "micropython" / "ports" / port / "boards" / board
 

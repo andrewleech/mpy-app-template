@@ -20,6 +20,14 @@ Changes are only meaningful once generated. After editing:
 ./test_template.sh --all         # every variant, slow
 ```
 
+`copier.yaml` carries two generated blocks, both written by `tools/sync_mpbuild.py`: the
+port choices, and a `port_boards` map keyed by port. `template_board` takes its `choices`
+from `port_boards[target_port]`, which is how the board list narrows to the selected port.
+Copier renders `choices` through Jinja, so a question can depend on an earlier answer.
+
+`--check` covers only the port list. That one is fixed by the mpbuild version, while board
+lists follow MicroPython and would turn CI red whenever a board lands upstream.
+
 Two traps in path names:
 
 - A conditional **directory** name must not carry the `.tmpl` suffix. `[% if x %]d[% endif %].tmpl`
