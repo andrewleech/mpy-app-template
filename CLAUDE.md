@@ -29,10 +29,10 @@ Driving copier directly leaves `port_boards` empty, and the validator on `target
 which command to use. Prefer that over a Jinja extension: copier imports extensions from its
 own environment, so a missing one fails with an import error carrying no useful advice.
 
-`test_template.sh` and CI run `uvx --no-cache --from . mpy-new-project`. Without `--no-cache`,
-uv keys
-a local-path build by version, and the version does not move while the template is being
-worked on, so a stale wheel gets served and changes appear to have no effect.
+`test_template.sh` and CI run `uvx --no-cache --from . mpy-new-project`. uv reuses a wheel it
+built from a local path without noticing the source changed, so without the flag edits appear
+to do nothing. Neither a new commit nor a dirty working tree is enough to make it rebuild,
+and neither `--refresh` nor `--reinstall` helps. Installing from git is unaffected.
 
 Two traps in path names:
 

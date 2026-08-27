@@ -1,9 +1,9 @@
 [project]
 name = "mpy-app-template"
-version = "0.1.0"
 description = "Copier template for MicroPython application projects"
 readme = "README.md"
 requires-python = ">=3.10"
+dynamic = ["version"]
 dependencies = [
     "copier>=9.4",
     "mpbuild>=1.0",
@@ -13,8 +13,13 @@ dependencies = [
 mpy-new-project = "mpy_app_template.cli:main"
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=64", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
 
-[tool.hatch.build.targets.wheel]
+[tool.setuptools]
 packages = ["mpy_app_template"]
+
+[tool.setuptools_scm]
+# Version comes from git tags, so releases need no edit here. Until the first
+# tag exists the fallback keeps builds working.
+fallback_version = "0.0.0"

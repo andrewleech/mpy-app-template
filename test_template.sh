@@ -29,11 +29,10 @@ build_variant() {
   dest=$(mktemp -d "${TMPDIR:-/tmp}/mpy_app_template_test_${variant}_XXXXXX")
   echo "=== $variant -> $dest"
 
-  # Through mpy-new-project, so the run takes the same path a user does. --no-cache
-  # because uv keys a local-path build by version, and the version does not
-  # move while the template is being worked on, so a cached wheel would be
-  # served instead of the working tree. Installing from git keys on the commit
-  # and does not need it.
+  # Through mpy-new-project, so the run takes the same path a user does.
+  # --no-cache because uv reuses a wheel it built from a local path without
+  # noticing the source changed, so edits appear to do nothing. Verified that
+  # neither a new commit nor a dirty tree is enough to make it rebuild.
   uvx --no-cache --from "$TEMPLATE_DIR" mpy-new-project \
     --src "$TEMPLATE_DIR" --vcs-ref HEAD --data-file "$answers" "$dest"
 
