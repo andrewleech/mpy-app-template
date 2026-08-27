@@ -24,12 +24,6 @@ _envops:
 # initial_setup.py registers submodules, copies the board definition, resolves
 # the build containers from mpbuild and installs type stubs. It is re-runnable;
 # `make setup` invokes it again after a MicroPython bump.
-# Supplies the port and board lookups the questions below call into. Copier
-# imports extensions from its own environment, which is why generation goes
-# through the mpy-new command (see README).
-_jinja_extensions:
-  - mpy_app_template.boards.MicroPythonExtension
-
 _tasks:
   - "[[ _copier_python ]] tools/initial_setup.py"
 
@@ -67,25 +61,36 @@ license:
 
 # TARGET
 
+# Ports and their boards, read live by mpy-new when it starts. Empty when
+# copier is driven directly, which the validators below explain.
+port_boards:
+  type: yaml
+  when: false
+  default: {}
+
 target_port:
   type: str
   help: MicroPython port for your hardware, from the ports mpbuild builds in a container.
-  choices: "[[ mpbuild_ports() ]]"
+  choices: "[[ port_boards.keys() | list ]]"
+  validator: >-
+    [% if not port_boards %]The port and board lists come from mpy-new. Create the
+    project with: uvx --from git+https://github.com/andrewleech/mpy-app-template
+    mpy-new <directory>[% endif %]
   default: stm32
 
 template_board:
   type: str
   help: Board to start from, chosen from the ones this port offers.
   when: "[[ target_port != 'unix' ]]"
-  choices: "[[ boards_for(target_port) ]]"
+  choices: "[[ port_boards.get(target_port, []) ]]"
   validator: >-
-    [% if not template_board %]The [[ target_port ]] port has no board
-    definitions in MicroPython, so there is nothing to start from.[% endif %]
+    [% if not template_board %]The [[ target_port ]] port has no boards to start
+    from.[% endif %]
   default: >-
     [[ {'stm32': 'PYBV11', 'rp2': 'RPI_PICO', 'esp32': 'ESP32_GENERIC',
         'esp8266': 'ESP8266_GENERIC', 'mimxrt': 'TEENSY40', 'samd':
         'ADAFRUIT_ITSYBITSY_M4_EXPRESS', 'nrf': 'PCA10056', 'renesas-ra':
-        'EK_RA6M2'}.get(target_port, (boards_for(target_port) or [''])[0]) ]]
+        'EK_RA6M2'}.get(target_port, (port_boards.get(target_port) or [''])[0]) ]]
 
 project_board_name:
   type: str

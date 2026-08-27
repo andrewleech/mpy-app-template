@@ -1,16 +1,14 @@
 """
-Jinja extension supplying the port and board choices to copier.
+The port and board lists offered by the questions.
 
-Copier renders a question's `choices` through Jinja, so a question can call
-into here and offer a list that reflects MicroPython right now. The port list
-comes from mpbuild, which owns the mapping from port to build container. The
-board list comes from the MicroPython repository, using the same rule mpbuild
-uses to discover boards: a directory under ports/<port>/boards/ holding a
+The ports come from mpbuild, which owns the mapping from port to build
+container. The boards come from the MicroPython repository, using the same rule
+mpbuild uses to find them: a directory under ports/<port>/boards/ holding a
 board.json.
 
-Reading the boards from the repository rather than a checkout keeps the
-questions answerable before anything has been cloned, which is when copier
-asks them.
+Reading the boards from the repository rather than a checkout keeps the lists
+available before anything has been cloned, which is when copier asks. mpy-new
+reads them at startup and hands them to copier as answer data.
 """
 
 from __future__ import annotations
@@ -19,8 +17,6 @@ import json
 import os
 import urllib.error
 import urllib.request
-
-from jinja2.ext import Extension
 
 # Ports mpbuild can build that make no sense to start an application project
 # from: they produce a host binary rather than firmware for a board.
@@ -115,10 +111,7 @@ def boards_for(port: str) -> list[str]:
     return _fetch_boards(micropython_ref()).get(port, [])
 
 
-class MicroPythonExtension(Extension):
-    """Expose the port and board lookups to copier's questions."""
-
-    def __init__(self, environment):
-        super().__init__(environment)
-        environment.globals["mpbuild_ports"] = mpbuild_ports
-        environment.globals["boards_for"] = boards_for
+def port_boards() -> dict[str, list[str]]:
+    """Every offered port mapped to the boards it has."""
+    boards = _fetch_boards(micropython_ref())
+    return {port: boards.get(port, []) for port in mpbuild_ports()}

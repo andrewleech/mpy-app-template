@@ -20,15 +20,18 @@ Changes are only meaningful once generated. After editing:
 ./test_template.sh --all         # every variant, slow
 ```
 
-The port and board questions call into `mpy_app_template/boards.py`, a Jinja extension
-registered in `_jinja_extensions`. Copier renders `choices` through Jinja, so a question can
-call a function and can depend on an earlier answer. Ports come from mpbuild's container
-table, boards from one GitHub tree request against the MicroPython repository, filtered the
-way mpbuild filters them.
+`mpy_app_template/boards.py` reads the port list from mpbuild's container table and the board
+list from one GitHub tree request against the MicroPython repository, filtered the way mpbuild
+filters it. `mpy_app_template/cli.py` calls that at startup and passes the result to copier as
+the `port_boards` answer; `target_port` and `template_board` take their `choices` from it.
 
-Copier imports extensions from its own environment, not from the template, which is why
-generation goes through `mpy-new` (`mpy_app_template/cli.py`) and why `test_template.sh` and
-CI both run `uvx --from . mpy-new`. A plain `copier copy` fails on the missing import.
+Driving copier directly leaves `port_boards` empty, and the validator on `target_port` says
+which command to use. Prefer that over a Jinja extension: copier imports extensions from its
+own environment, so a missing one fails with an import error carrying no useful advice.
+
+`test_template.sh` and CI run `uvx --no-cache --from . mpy-new`. Without `--no-cache`, uv keys
+a local-path build by version, and the version does not move while the template is being
+worked on, so a stale wheel gets served and changes appear to have no effect.
 
 Two traps in path names:
 

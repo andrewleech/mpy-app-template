@@ -28,7 +28,7 @@ jobs:
         run: |
           dest=$(mktemp -d)
           echo "DEST=$dest" >> "$GITHUB_ENV"
-          uvx --from . mpy-new --src . --vcs-ref HEAD \
+          uvx --no-cache --from . mpy-new --src . --vcs-ref HEAD \
             --data-file "test/${{ matrix.variant }}.copier-answers.yml" "$dest"
 
       - name: Check the generated project
