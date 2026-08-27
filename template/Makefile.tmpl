@@ -90,13 +90,17 @@ DOCKER_VERSION_ENV = $(if $(MICROPY_GIT_TAG),MICROPY_GIT_TAG="$(MICROPY_GIT_TAG)
 DOCKER_VERSION_ARGS = $(if $(MICROPY_GIT_TAG),-e MICROPY_GIT_TAG -e MICROPY_GIT_HASH)
 DOCKER_ENV_FILTER = env -i HOME="$$HOME" USER="$$USER" PATH="$$PATH" TERM="$$TERM" SHELL="$$SHELL" \
   $(DOCKER_VERSION_ENV)
+# HOME is set inside the container, not inherited: the host home directory is
+# not mounted, and the running uid has no passwd entry there, so tools that
+# want a cache directory (the ESP-IDF component manager, for one) fall back to
+# / and fail. This is what mpbuild does for the same reason.
 DOCKER_RUN = docker run --rm -v "$$(pwd):$$(pwd)" -w "$$(pwd)" --user="$$(id -u):$$(id -g)" \
-  $(DOCKER_VERSION_ARGS)
+  -e HOME=/tmp $(DOCKER_VERSION_ARGS)
 DOCKER = @$(DOCKER_ENV_FILTER) $(DOCKER_RUN) $(IMAGE)
 DOCKER_UNIX = @$(DOCKER_ENV_FILTER) $(DOCKER_RUN) $(UNIX_IMAGE)
 # Minimal environment for reproducible builds (e.g., mpy-cross)
 DOCKER_CLEAN_ENV = env -i PATH="$$PATH" LANG=C.UTF-8 LC_ALL=C.UTF-8
-DOCKER_CLEAN = @$(DOCKER_CLEAN_ENV) docker run --rm -v "$$(pwd):$$(pwd)" -w "$$(pwd)" --user="$$(id -u):$$(id -g)" $(UNIX_IMAGE)
+DOCKER_CLEAN = @$(DOCKER_CLEAN_ENV) docker run --rm -v "$$(pwd):$$(pwd)" -w "$$(pwd)" --user="$$(id -u):$$(id -g)" -e HOME=/tmp $(UNIX_IMAGE)
 endif
 
 BOLD :=
