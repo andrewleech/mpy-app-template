@@ -9,22 +9,23 @@ and Pylance, pre-commit, and CI for GitHub or GitLab.
 ## Creating a project
 
 ```bash
-uvx --from git+https://github.com/andrewleech/mpy-app-template mpy-new my_project
+uvx --from git+https://github.com/andrewleech/mpy-app-template mpy-new-project my_project
 ```
 
 Answering the questions is the whole setup. `tools/initial_setup.py` then registers the
 submodules, copies the board definition out of MicroPython, works out which containers build
 this port, installs the type stubs and makes the first commit.
 
-`mpy-new` wraps `copier copy`. It reads the port and board lists first and hands them to
-copier as answers, which is how the questions can offer a list that matches MicroPython right
-now. Running `copier` directly skips that step, and the first question says so.
+`mpy-new-project` wraps `copier copy`. Before handing over, it reads the ports mpbuild can
+build and the boards MicroPython currently has, and passes them to copier as answers. That is
+what lets the two questions offer a list of the moment rather than one baked into the
+template. Running `copier` directly skips the step, and the first question says so.
 
 To pick up template changes later:
 
 ```bash
 cd my_project
-uvx --from git+https://github.com/andrewleech/mpy-app-template mpy-new --update .
+uvx --from git+https://github.com/andrewleech/mpy-app-template mpy-new-project --update .
 ```
 
 ## Choosing a port and board
@@ -33,9 +34,9 @@ The port question offers what mpbuild can build in a container, and the board qu
 narrows to the boards that port has. Pick `rp2` and you scroll a list of 38 Pico-family
 boards; pick `stm32` and you get 76. Type a few characters to filter.
 
-Both lists are read when `mpy-new` starts, so they match MicroPython as it stands rather than
-whenever the template was last touched. Ports come from mpbuild, boards from the MicroPython
-repository using the rule mpbuild itself uses to find them (a directory under
+Both lists are read when `mpy-new-project` starts, so they match MicroPython as it stands,
+not whenever the template was last touched. Ports come from mpbuild, boards from the
+MicroPython repository using the rule mpbuild itself uses to find them (a directory under
 `ports/<port>/boards/` holding a `board.json`). One request covers every port.
 
 Set `MPY_BOARDS_REF` to read the boards from a ref other than master.

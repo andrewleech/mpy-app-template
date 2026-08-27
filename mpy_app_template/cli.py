@@ -5,7 +5,7 @@ The port and board questions offer lists read from MicroPython at the moment
 they are asked. Copier has no way to fetch those itself, so this command reads
 them and hands them over as answer data.
 
-    uvx --from git+https://github.com/andrewleech/mpy-app-template mpy-new my_project
+    uvx --from git+https://github.com/andrewleech/mpy-app-template mpy-new-project my_project
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ TEMPLATE_URL = "git+https://github.com/andrewleech/mpy-app-template"
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        prog="mpy-new",
+        prog="mpy-new-project",
         description="Create or update a MicroPython application project.",
     )
     parser.add_argument("destination", type=Path,

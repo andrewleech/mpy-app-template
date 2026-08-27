@@ -10,7 +10,7 @@ dependencies = [
 ]
 
 [project.scripts]
-mpy-new = "mpy_app_template.cli:main"
+mpy-new-project = "mpy_app_template.cli:main"
 
 [build-system]
 requires = ["hatchling"]

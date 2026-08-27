@@ -61,7 +61,7 @@ license:
 
 # TARGET
 
-# Ports and their boards, read live by mpy-new when it starts. Empty when
+# Ports and their boards, read live by mpy-new-project when it starts. Empty when
 # copier is driven directly, which the validators below explain.
 port_boards:
   type: yaml
@@ -73,9 +73,9 @@ target_port:
   help: MicroPython port for your hardware, from the ports mpbuild builds in a container.
   choices: "[[ port_boards.keys() | list ]]"
   validator: >-
-    [% if not port_boards %]The port and board lists come from mpy-new. Create the
+    [% if not port_boards %]The port and board lists come from mpy-new-project. Create the
     project with: uvx --from git+https://github.com/andrewleech/mpy-app-template
-    mpy-new <directory>[% endif %]
+    mpy-new-project <directory>[% endif %]
   default: stm32
 
 template_board:

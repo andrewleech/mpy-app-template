@@ -7,7 +7,7 @@ mpbuild uses to find them: a directory under ports/<port>/boards/ holding a
 board.json.
 
 Reading the boards from the repository rather than a checkout keeps the lists
-available before anything has been cloned, which is when copier asks. mpy-new
+available before anything has been cloned, which is when copier asks. mpy-new-project
 reads them at startup and hands them to copier as answer data.
 """
 

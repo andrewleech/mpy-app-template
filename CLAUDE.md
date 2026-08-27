@@ -29,15 +29,17 @@ Driving copier directly leaves `port_boards` empty, and the validator on `target
 which command to use. Prefer that over a Jinja extension: copier imports extensions from its
 own environment, so a missing one fails with an import error carrying no useful advice.
 
-`test_template.sh` and CI run `uvx --no-cache --from . mpy-new`. Without `--no-cache`, uv keys
+`test_template.sh` and CI run `uvx --no-cache --from . mpy-new-project`. Without `--no-cache`,
+uv keys
 a local-path build by version, and the version does not move while the template is being
 worked on, so a stale wheel gets served and changes appear to have no effect.
 
 Two traps in path names:
 
-- A conditional **directory** name must not carry the `.tmpl` suffix. `[% if x %]d[% endif %].tmpl`
-  renders to a literal `.tmpl` directory when the condition is false. Conditional files are
-  fine, because copier strips the suffix and skips the empty name.
+- A conditional **directory** name must not carry the `.tmpl` suffix.
+  `[% if x %]d[% endif %].tmpl` renders to a literal `.tmpl` directory when the
+  condition is false. Conditional files are fine, because copier strips the
+  suffix and skips the empty name.
 - Copier evaluates a question's `default` even when its `when` is false, so a default that
   builds on a skipped answer has to collapse to empty itself. `project_board_name` does this
   for the unix port.

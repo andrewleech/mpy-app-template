@@ -29,12 +29,12 @@ build_variant() {
   dest=$(mktemp -d "${TMPDIR:-/tmp}/mpy_app_template_test_${variant}_XXXXXX")
   echo "=== $variant -> $dest"
 
-  # Through mpy-new, so the run takes the same path a user does. --no-cache
+  # Through mpy-new-project, so the run takes the same path a user does. --no-cache
   # because uv keys a local-path build by version, and the version does not
   # move while the template is being worked on, so a cached wheel would be
   # served instead of the working tree. Installing from git keys on the commit
   # and does not need it.
-  uvx --no-cache --from "$TEMPLATE_DIR" mpy-new \
+  uvx --no-cache --from "$TEMPLATE_DIR" mpy-new-project \
     --src "$TEMPLATE_DIR" --vcs-ref HEAD --data-file "$answers" "$dest"
 
   # The unix port has no board, so there is no firmware to build.
