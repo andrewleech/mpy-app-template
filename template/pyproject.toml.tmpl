@@ -106,6 +106,12 @@ extraPaths = [
     "src/libs/micropython-lib/micropython/aiorepl",
     "src/libs/micropython-lib/python-stdlib/logging",
     "src/libs/micropython-lib/python-stdlib/unittest",
+[% if target_port == "unix" %]
+    # On the unix port the simulation modules are the implementation, so they
+    # are the right thing for `machine` to resolve to. On a real port they
+    # would shadow the port stubs.
+    "src/unix/simulation",
+[% endif %]
 ]
 
 [tool.mypy]
@@ -122,6 +128,12 @@ mypy_path = [
     "src/libs/micropython-lib/micropython/aiorepl",
     "src/libs/micropython-lib/python-stdlib/logging",
     "src/libs/micropython-lib/python-stdlib/unittest",
+[% if target_port == "unix" %]
+    # On the unix port the simulation modules are the implementation, so they
+    # are the right thing for `machine` to resolve to. On a real port they
+    # would shadow the port stubs.
+    "src/unix/simulation",
+[% endif %]
 ]
 
 custom_typeshed_dir = "tools/typings"

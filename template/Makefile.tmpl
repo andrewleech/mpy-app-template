@@ -72,11 +72,14 @@ PORT ?= [[target_port]]
 
 MP_CMD ?= $(MICROPYTHON_BASE)/ports/unix/build-$(UNIX_VARIANT)/micropython
 
-# Run commands inside ephemeral docker if needed
-ifneq ("$(wildcard /.dockerenv)$(CI)","")
-RUN_IN_DOCKER=0
+# Build inside the toolchain container unless already in one. This tests for a
+# container, not for CI: a CI job that generates or builds a project on a bare
+# runner still needs the container, and only /.dockerenv distinguishes the two.
+# Override with RUN_IN_DOCKER=0 to build against a host toolchain.
+ifneq ("$(wildcard /.dockerenv)","")
+RUN_IN_DOCKER ?= 0
 else
-RUN_IN_DOCKER=1
+RUN_IN_DOCKER ?= 1
 IMAGE ?= $(BUILD_CONTAINER)
 UNIX_IMAGE ?= $(UNIX_BUILD_CONTAINER)
 # Filter host-specific environment variables out of the build, but carry the

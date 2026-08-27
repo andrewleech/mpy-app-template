@@ -441,6 +441,22 @@ def run_pre_commit():
     run("uvx", "pre-commit", "install", check=False)
 
 
+def _identity_args(answers):
+    """Supply a committer identity when git has none configured.
+
+    A fresh machine or a CI runner has no user.name/user.email, and git exits
+    128 rather than committing. Fall back to the answers rather than failing
+    generation; the developer can amend afterwards.
+    """
+    configured = run("git", "config", "user.email", check=False, capture=True)
+    if configured.returncode == 0 and configured.stdout.strip():
+        return []
+
+    name = answers.get("author") or answers["project_name"]
+    note(f'git has no committer identity configured; using "{name}" for the initial commit.')
+    return ["-c", f"user.name={name}", "-c", "user.email=noreply@example.invalid"]
+
+
 def create_initial_commit(answers):
     if run("git", "log", "-1", check=False, capture=True).returncode == 0:
         info("Repository already has history; review and commit the changes.")
@@ -451,7 +467,7 @@ def create_initial_commit(answers):
     message = f"Create {answers['project_name']} from mpy-app-template"
     if answers.get("version_scheme") == "git-versioner":
         message += "\n\nCHANGE: major"
-    run("git", "commit", "-m", message, "--no-verify")
+    run("git", *_identity_args(answers), "commit", "-m", message, "--no-verify")
     run("git", "tag", "v0.0.1")
     print(run("git", "log", "-1", "--oneline", capture=True).stdout, end="")
 

@@ -21,6 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     # Resolved from mpbuild by tools/initial_setup.py; `make setup` refreshes it.
     container: "@UNIX_BUILD_CONTAINER@"
+    env:
+      RUN_IN_DOCKER: 0
     steps:
       - uses: actions/checkout@v4
         with:
@@ -41,6 +43,8 @@ jobs:
     runs-on: ubuntu-latest
     # Resolved from mpbuild by tools/initial_setup.py; `make setup` refreshes it.
     container: "@BUILD_CONTAINER@"
+    env:
+      RUN_IN_DOCKER: 0
     steps:
       - uses: actions/checkout@v4
         with:
