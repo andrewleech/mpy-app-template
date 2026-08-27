@@ -1,0 +1,57 @@
+name: Test template
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  ports-in-sync:
+    name: Port choices match mpbuild
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: python3 tools/sync_ports.py --check
+
+  generate:
+    name: ${{ matrix.variant }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # One entry per file in test/. esp32 is generation-only: resolving its
+        # container pulls a multi-gigabyte ESP-IDF image, which is more than a
+        # template smoke test warrants.
+        variant: [stm32-mboot, stm32-no-mboot, rp2, unix, esp32]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Generate
+        run: |
+          dest=$(mktemp -d)
+          echo "DEST=$dest" >> "$GITHUB_ENV"
+          uvx copier copy --trust --vcs-ref HEAD \
+            --data-file "test/${{ matrix.variant }}.copier-answers.yml" . "$dest"
+
+      - name: Check the generated project
+        run: make -C "$DEST" checks
+
+      - name: Build firmware
+        if: matrix.variant != 'unix' && matrix.variant != 'esp32'
+        run: |
+          make -C "$DEST" system
+          make -C "$DEST" libs-only
+
+      - name: Build bootloader
+        if: matrix.variant == 'stm32-mboot'
+        run: make -C "$DEST" mboot
+
+      - name: Unit tests
+        if: matrix.variant != 'esp32'
+        run: make -C "$DEST" tests

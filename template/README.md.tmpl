@@ -1,0 +1,79 @@
+# [[ project_name ]]
+
+MicroPython firmware for the [[ target_port ]] port[% if target_port != "unix" %], board `[[ project_board_name ]]`[% endif %].
+
+## Building
+
+Builds run inside the container mpbuild selects for this port. The Makefile
+detects when it is already inside a container or in CI and builds directly.
+
+```bash
+make submodules     # fetch MicroPython and the libraries
+make system         # build the firmware with the application frozen in
+make libs-only      # build with only the libraries frozen, no application
+[% if use_mboot %]make mboot          # build the bootloader
+make deploy-dfu     # flash over DFU
+[% endif %]make clean          # remove build output
+```
+
+Firmware lands in `src/system/build-[[ project_board_name ]]/`.
+
+The container names live in `src/system/build_containers.mk`. Re-run
+`make setup` after moving the MicroPython submodule so they stay in step; the
+esp32 image in particular is derived from that tree's IDF lockfile.
+
+## Testing
+
+```bash
+make tests       # unit tests, on the unix port
+make checks      # ruff, mypy, yamllint via pre-commit
+make repl-unix   # REPL on the unix port with simulated hardware
+make run-unix    # run the application on the unix port
+```
+
+`src/unix/simulation` carries stand-ins for the hardware modules the
+application imports. It covers only what the application touches, so extend it
+alongside `hardware.py`, and keep anything needing real peripheral behaviour in
+an on-target test.
+
+## Layout
+
+```
+src/firmware/application  frozen application code
+src/firmware/test         unit tests, run on the unix port
+src/libs                  library submodules frozen into the firmware
+src/micropython           MicroPython (submodule)
+src/system                board definition and build output
+src/unix                  unix port build and hardware simulation
+tools                     build helpers and project setup
+```
+
+The application is six modules: `boot.py` prepares the filesystem, `main.py`
+starts the application, `device.py` owns the event loop and task list,
+`hardware.py` constructs everything that touches a peripheral,
+`device_config.py` holds settings, and `version.py` reports the build.
+
+## Versioning
+
+[% if version_scheme == "git-versioner" %][git-versioner](https://pypi.org/project/git-versioner/)
+derives the version from git. On a tag it is used as-is; otherwise the semantic
+version is incremented. Control the increment with a `CHANGE: major|minor|patch`
+commit footer, or the `VERSION_INCREMENT` environment variable.
+
+The version is resolved on the host and passed into the build container through
+`MICROPY_GIT_TAG`/`MICROPY_GIT_HASH`, so the container needs no project
+packages.[% else %]The version is `git describe` output: `<tag>-<commits>-g<hash>`.
+Tag a commit to make a release build.[% endif %]
+
+```python
+import version
+print(version.firmware_version)
+[% if use_mboot %]print(version.bootloader_version)
+[% endif %]```
+
+## Type checking
+
+Stubs are installed into `tools/typings` by `make typings` and used as a custom
+typeshed by both mypy and Pylance. `src/unix/simulation` is deliberately absent
+from the type paths, so `machine` resolves to the port stubs rather than the
+simulation shims.

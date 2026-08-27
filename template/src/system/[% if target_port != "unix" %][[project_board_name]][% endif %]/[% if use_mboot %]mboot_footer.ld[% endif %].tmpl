@@ -1,0 +1,18 @@
+/**
+ * Passed to the linker in MBOOT_LD_FILES to place the version footer.
+ *
+ * A Cortex-M vector table holds at most 256 entries, so 0x400 past the start
+ * of the bootloader clears it on any supported part. Keep this in step with
+ * MBOOT_VERS_ADDR in src/firmware/application/version.py.
+ */
+
+SECTIONS
+{
+    .fw_footer [[ bootloader_address ]] + 0x400 :
+    {
+        KEEP(*(.text.fw_footer))
+        . = ALIGN(4);
+    } >FLASH_BL
+
+}
+INSERT BEFORE .text;

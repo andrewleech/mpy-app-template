@@ -1,0 +1,18 @@
+# stm32 without a bootloader, and the git-describe version scheme.
+_commit: HEAD
+_src_path: ~/mpy-app-template
+_ci: true
+
+project_name: TemplateTestPlain
+project_url: https://github.com/example/template-test.git
+author: Template Test
+license: BSD-3-Clause
+
+target_port: stm32
+template_board: PYBV11
+project_board_name: TEMPLATETESTPLAIN_PYBV11
+
+use_mboot: false
+
+version_scheme: git-describe
+ci_platform: github

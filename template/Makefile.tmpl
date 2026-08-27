@@ -1,0 +1,311 @@
+# Project makefile.
+MAKE_OPTIONS := -j$(shell nproc)
+PROJECT_BASE := $(strip $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST)))))
+
+# Check for spaces in PROJECT_BASE path
+ifneq ($(words $(PROJECT_BASE)),1)
+$(error PROJECT_BASE contains spaces: "$(PROJECT_BASE)". Build paths with spaces are not supported by Make.)
+endif
+
+MICROPYTHON_BASE := $(PROJECT_BASE)/src/micropython
+MPY_LIB_DIR := $(PROJECT_BASE)/src/libs/micropython-lib
+
+# Include project-wide configuration
+include $(PROJECT_BASE)/src/system/mpconfigproj.mk
+
+UNIX_VARIANT = standard
+
+# Common Unix build options. FFI is off because the build containers carry no
+# libffi-dev, and nothing in the project needs it.
+UNIX_OPTIONS=$(MAKE_OPTIONS) VARIANT=$(UNIX_VARIANT) \
+  MPY_LIB_DIR=$(MPY_LIB_DIR) \
+  MICROPY_PY_FFI=0 \
+  CWARN="-Wall -Wno-error=int-conversion -Wno-error=return-type" \
+  CFLAGS_EXTRA="-DMICROPY_ENABLE_SCHEDULER=1 -DMICROPY_PY_UPLATFORM=1"
+
+# Common Firmware build options
+FW_OPTIONS=$(MAKE_OPTIONS) \
+  PORT=$(PORT) \
+  BOARD=$(BOARD) \
+  [% if use_mboot %]USE_MBOOT=1[% else %]USE_MBOOT=0[%endif%] \
+  USER_C_MODULES=$(USER_C_MODULES)
+
+MPY_CROSS = $(MICROPYTHON_BASE)/mpy-cross/build/mpy-cross
+
+# Point the port builds at the mpy-cross this makefile builds. Without it the
+# cmake ports add their own mpy-cross sub-make, and because BUILD is passed on
+# the command line make exports it into that sub-make, so mpy-cross writes its
+# genhdr into the port's build directory. mpy-cross is a full-featured build,
+# so its module scan lands entries in the shared genhdr that the port never
+# compiles, and the firmware fails to link against them.
+export MICROPY_MPYCROSS := $(MPY_CROSS)
+
+# Build containers, resolved from mpbuild by tools/initial_setup.py.
+include $(PROJECT_BASE)/src/system/build_containers.mk
+
+# Resolve the version on the host and hand it to the build through the
+# environment. MicroPython's makeversionhdr.py prefers these over its own
+# lookups, which is what lets a project version reach both the make-based and
+# the cmake-based ports without any per-port machinery, and keeps the version
+# tooling out of the build container.
+[% if version_scheme == 'git-versioner' %]
+MPY_VERSION := $(shell PROJECT_ROOT="$(PROJECT_BASE)" uv run --quiet --no-project \
+  --with git-versioner python -c \
+  'import __version__; print(__version__.version, __version__.git_hash)' 2>/dev/null)
+[% else %]
+MPY_VERSION := $(shell git -C "$(PROJECT_BASE)" describe --tags --always --dirty \
+  --match 'v[0-9]*' 2>/dev/null) $(shell git -C "$(PROJECT_BASE)" rev-parse --short HEAD 2>/dev/null)
+[% endif %]
+# Left unset when the lookup fails: makeversionhdr.py treats a present but
+# empty MICROPY_GIT_TAG as a failure rather than falling back.
+ifneq ($(words $(MPY_VERSION)),2)
+MPY_VERSION :=
+endif
+ifneq ($(strip $(MPY_VERSION)),)
+export MICROPY_GIT_TAG := $(word 1,$(MPY_VERSION))
+export MICROPY_GIT_HASH := $(word 2,$(MPY_VERSION))
+endif
+
+# Board and Port definition
+BOARD ?= [[project_board_name]]
+PORT ?= [[target_port]]
+
+MP_CMD ?= $(MICROPYTHON_BASE)/ports/unix/build-$(UNIX_VARIANT)/micropython
+
+# Run commands inside ephemeral docker if needed
+ifneq ("$(wildcard /.dockerenv)$(CI)","")
+RUN_IN_DOCKER=0
+else
+RUN_IN_DOCKER=1
+IMAGE ?= $(BUILD_CONTAINER)
+UNIX_IMAGE ?= $(UNIX_BUILD_CONTAINER)
+# Filter host-specific environment variables out of the build, but carry the
+# version through: env -i would otherwise drop it.
+# Only forwarded when actually set: makeversionhdr.py treats a present but
+# empty MICROPY_GIT_TAG as a failure rather than falling back to git describe.
+DOCKER_VERSION_ENV = $(if $(MICROPY_GIT_TAG),MICROPY_GIT_TAG="$(MICROPY_GIT_TAG)" MICROPY_GIT_HASH="$(MICROPY_GIT_HASH)")
+DOCKER_VERSION_ARGS = $(if $(MICROPY_GIT_TAG),-e MICROPY_GIT_TAG -e MICROPY_GIT_HASH)
+DOCKER_ENV_FILTER = env -i HOME="$$HOME" USER="$$USER" PATH="$$PATH" TERM="$$TERM" SHELL="$$SHELL" \
+  $(DOCKER_VERSION_ENV)
+DOCKER_RUN = docker run --rm -v "$$(pwd):$$(pwd)" -w "$$(pwd)" --user="$$(id -u):$$(id -g)" \
+  $(DOCKER_VERSION_ARGS)
+DOCKER = @$(DOCKER_ENV_FILTER) $(DOCKER_RUN) $(IMAGE)
+DOCKER_UNIX = @$(DOCKER_ENV_FILTER) $(DOCKER_RUN) $(UNIX_IMAGE)
+# Minimal environment for reproducible builds (e.g., mpy-cross)
+DOCKER_CLEAN_ENV = env -i PATH="$$PATH" LANG=C.UTF-8 LC_ALL=C.UTF-8
+DOCKER_CLEAN = @$(DOCKER_CLEAN_ENV) docker run --rm -v "$$(pwd):$$(pwd)" -w "$$(pwd)" --user="$$(id -u):$$(id -g)" $(UNIX_IMAGE)
+endif
+
+BOLD :=
+RESET :=
+
+default: help
+
+.PHONY : help
+help:
+	@echo "$(BOLD)$(PROJECT_NAME) Makefile$(RESET)"
+	@echo "Please use 'make $(BOLD)target$(RESET)' where $(BOLD)target$(RESET) is one of:"
+	@grep -h ':\s\+##' Makefile | column -t -s# | awk -F ":" '{ print "  $(BOLD)" $$1 "$(RESET)" $$2 }'
+
+# Static analysis runs on the host; the toolchain images carry no python tooling.
+.PHONY: checks
+checks:  ## Run static analysis (ruff, mypy, yamllint)
+checks:
+	@echo "$(BOLD)Running static analysis$(RESET)"
+	@uvx pre-commit run --all-files
+
+.PHONY: lint
+lint:  ## Run the linter
+lint:
+	@echo "$(BOLD)Running ruff$(RESET)"
+	@uvx pre-commit run --all-files ruff
+
+.PHONY: format
+format:  ## Check formatting
+format:
+	@echo "$(BOLD)Checking formatting$(RESET)"
+	@uvx pre-commit run --all-files ruff-format
+
+## Check out the required submodules.
+#
+# Guarded by a stamp file the recipe itself writes. Guarding on a file git
+# creates instead would let `make submodules` no-op after the git submodules
+# were added by hand, leaving the port dependencies (mbedtls, berkeley-db and
+# friends) unfetched and the build failing much later.
+.PHONY: submodules submodules-force
+SUBMODULE_STAMP = $(PROJECT_BASE)/src/.submodules
+
+define SUBMODULE_GIT_UPDATE
+	@echo "$(BOLD)Cloning submodules$(RESET)"
+	## Shallow clone micropython submodule
+	git submodule update --init --depth 1 src/micropython
+	## Recursive clone all other library submodules
+	git -c submodule."src/micropython".update=none submodule update --init --recursive
+endef
+
+# Fetching the port dependencies is not a plain git operation on every port:
+# rp2 and esp32 resolve theirs through cmake, which needs the port toolchain.
+# Run it in the build container so it works the same way everywhere.
+.PHONY: submodules-ports
+submodules-ports:
+[% if target_port != "unix" %]	make -C src/system $(FW_OPTIONS) submodules
+[% endif %]	make -C $(MICROPYTHON_BASE)/ports/unix $(UNIX_OPTIONS) submodules
+
+ifeq ($(RUN_IN_DOCKER), 1)
+SUBMODULE_PORTS_CMD = $(DOCKER) make submodules-ports
+else
+SUBMODULE_PORTS_CMD = $(MAKE) submodules-ports
+endif
+
+define SUBMODULE_SYNC_AND_UPDATE
+	$(SUBMODULE_GIT_UPDATE)
+	$(SUBMODULE_PORTS_CMD)
+	@touch $(SUBMODULE_STAMP)
+endef
+
+submodules: $(SUBMODULE_STAMP)
+
+$(SUBMODULE_STAMP):
+	$(SUBMODULE_SYNC_AND_UPDATE)
+
+submodules-force:
+	$(SUBMODULE_SYNC_AND_UPDATE)
+
+.PHONY: mpy-cross
+mpy-cross: $(MPY_CROSS)  ## Build the MicroPython cross-compiler
+$(MPY_CROSS): submodules
+ifeq ($(RUN_IN_DOCKER), 1)
+	$(DOCKER_CLEAN) make mpy-cross
+else
+	@echo "$(BOLD)Building mpy-cross...$(RESET)"
+	make -C $(MICROPYTHON_BASE)/mpy-cross $(MAKE_OPTIONS)
+endif
+
+.PHONY: system
+system:  ## Build MicroPython including frozen firmware
+system: $(MPY_CROSS)
+ifeq ($(RUN_IN_DOCKER), 1)
+	$(DOCKER) make $@
+else
+	@echo "-----------------------------------"
+	@echo "$(BOLD)Building MicroPython ...$(RESET)"
+	make -C src/system $(FW_OPTIONS)
+endif
+
+.PHONY: libs-only
+libs-only:  ## Build MicroPython with frozen libraries only (no application code)
+libs-only: $(MPY_CROSS)
+ifeq ($(RUN_IN_DOCKER), 1)
+	$(DOCKER) make $@
+else
+	@echo "-----------------------------------"
+	@echo "$(BOLD)Building MicroPython with libraries only...$(RESET)"
+	rm -rf src/system/build-$(BOARD)/frozen_*
+	make -C src/system $(FW_OPTIONS) EXCLUDE_APP=1
+endif
+
+[% if use_mboot %]
+.PHONY: mboot bootloader
+bootloader: mboot
+mboot:  ## Build MicroPython bootloader
+mboot: submodules
+ifeq ($(RUN_IN_DOCKER), 1)
+	$(DOCKER) make $@
+else
+	@echo "-----------------------------------"
+	@echo "$(BOLD)Building MicroPython mBoot ...$(RESET)"
+	@if [ "$(PORT)" != "stm32" ]; then echo "ERROR: mBoot only available on stm32"; exit 1; fi
+	make -C src/system $(MAKE_OPTIONS) BOARD=$(BOARD) PORT=$(PORT) mboot
+endif
+
+.PHONY: deploy-dfu
+deploy-dfu:  ## Flash application
+deploy-dfu:
+	@echo "-----------------------------------"
+	@echo "$(BOLD)Deploying Application ...$(RESET)"
+	make -C src/system $(MAKE_OPTIONS) BOARD=$(BOARD) PORT=$(PORT) deploy
+[%endif%]
+
+.PHONY: unix-port
+unix-port:  ## Build the MicroPython unix port (used for unit tests)
+unix-port: $(MPY_CROSS)
+ifeq ($(RUN_IN_DOCKER), 1)
+	$(DOCKER_UNIX) make $@
+else
+	@echo "-----------------------------------"
+	@echo "$(BOLD)Building the MicroPython unix port...$(RESET)"
+	make -C $(MICROPYTHON_BASE)/ports/unix $(UNIX_OPTIONS) all
+endif
+
+.PHONY: unix-frozen-code
+unix-frozen-code:  ## Build the frozen code for the MicroPython unix port
+unix-frozen-code: $(MPY_CROSS)
+ifeq ($(RUN_IN_DOCKER), 1)
+	$(DOCKER_UNIX) make $@
+else
+	@echo "$(BOLD)Freezing code for MicroPython unix port...$(RESET)"
+	MICROPY_MPYCROSS=$(MPY_CROSS) make -C src/unix
+endif
+
+.PHONY: repl-unix
+repl-unix:  ## Get a REPL on the MicroPython unix port (with fake hardware)
+repl-unix: unix-port unix-frozen-code
+	@echo "$(BOLD)REPL on the MicroPython unix port...$(RESET)"
+	make -C $(PROJECT_BASE)/src/unix $(MAKE_OPTIONS) repl
+
+.PHONY: run-unix
+run-unix:  ## Run the firmware on the MicroPython unix port (with fake hardware)
+run-unix: unix-port unix-frozen-code
+	@echo "$(BOLD)Running on the MicroPython unix port...$(RESET)"
+	make -C $(PROJECT_BASE)/src/unix $(MAKE_OPTIONS) run
+
+.PHONY: tests
+tests:  ## Execute unit tests (inside the unix port). Set 'test=test_one' to run a single unit test suite.
+tests: unix-port unix-frozen-code
+ifeq ($(RUN_IN_DOCKER), 1)
+	$(DOCKER_UNIX) make $@
+else
+	@echo "-----------------------------------"
+	@echo "$(BOLD)Execute unit tests...$(RESET)"
+	make -f custom.mk custom-tests
+ifdef test
+	cd src/unix/build/frozen_mpy; $(MP_CMD) -c 'import unittest_junit; unittest_junit.main("$(test)")'
+else
+	cd src/unix/build/frozen_mpy; $(MP_CMD) -m unittest_junit discover -p 'test_*.*py'
+endif
+	rm -rf $(PROJECT_BASE)/results 2> /dev/null
+	mv src/unix/build/frozen_mpy/results $(PROJECT_BASE)/
+endif
+
+.PHONY: clean
+clean:  ## Delete compiled artifacts
+clean:
+	@echo "$(BOLD)Cleaning MicroPython ...$(RESET)"
+	rm -rf $(MICROPYTHON_BASE)/mpy-cross/build
+	rm -rf $(MICROPYTHON_BASE)/ports/unix/build-$(UNIX_VARIANT)
+	rm -rf $(MICROPYTHON_BASE)/ports/[[target_port]]/build-*
+	rm -rf src/system/build-$(BOARD)
+	rm -rf src/unix/build
+
+STUBS_PACKAGE = micropython-[[ target_port ]]-stubs
+
+.PHONY: typings
+typings:  ## Install MicroPython type stubs into tools/typings
+typings: tools/typings/VERSIONS
+tools/typings/VERSIONS:
+	@echo "$(BOLD)Installing $(STUBS_PACKAGE)$(RESET)"
+	@uv pip install --quiet $(STUBS_PACKAGE) --target tools/typings || \
+	  echo "No stubs package for the [[ target_port ]] port; the port API will be unresolved."
+	@# mypy requires a VERSIONS file at both levels of a custom typeshed.
+	@mkdir -p tools/typings/stdlib/os
+	@printf 'from posixpath import __all__ as __all__\n' > tools/typings/stdlib/os/path.pyi
+	@printf 'os: 3.0-\nsys: 3.0-\nio: 3.0-\n' > tools/typings/stdlib/VERSIONS
+	@printf '# Stub versions for MicroPython stubs\n' > tools/typings/VERSIONS
+
+.PHONY: setup
+setup:  ## Re-run project setup: submodules, board files, build containers, stubs
+	@uv run --no-project --with mpbuild --with pyyaml python tools/initial_setup.py
+
+.PHONY: template-update
+template-update:  ## Re-apply the project template with copier
+	@uvx copier update --trust

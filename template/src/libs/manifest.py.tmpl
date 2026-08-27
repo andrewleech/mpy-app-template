@@ -1,0 +1,12 @@
+# micropython-lib packages
+require("logging")
+require("aiorepl")
+
+# Register src/libs so require() can find local libraries added as submodules.
+add_library("libs", ".")
+
+freeze(".", ("typing.py"), opt=0)
+
+# unittest is only needed where the tests run, which is the unix port.
+if not options.platform_baremetal:
+    include("micropython_unittest_junit/manifest.py")

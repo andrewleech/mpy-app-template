@@ -1,0 +1,19 @@
+# stm32 with the mboot bootloader.
+_commit: HEAD
+_src_path: ~/mpy-app-template
+_ci: true
+
+project_name: TemplateTestMboot
+project_url: https://github.com/example/template-test.git
+author: Template Test
+license: MIT
+
+target_port: stm32
+template_board: PYBV11
+project_board_name: TEMPLATETESTMBOOT_PYBV11
+
+use_mboot: true
+bootloader_address: '0x08000000'
+
+version_scheme: git-versioner
+ci_platform: both

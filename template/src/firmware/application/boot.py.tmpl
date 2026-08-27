@@ -1,0 +1,75 @@
+# Power on initialisation, run before main.py.
+import gc
+import sys
+
+# Reduce heap fragmentation, which allows more of the RAM to be used.
+gc.threshold(4000)  # type: ignore[attr-defined]
+
+# Reorder the path to prioritise the filesystem over frozen modules, so a file
+# copied onto the device shadows the frozen copy of the same name.
+sys.path.clear()
+sys.path.append(".frozen")
+
+# Development import paths, can be removed for production.
+sys.path.extend(
+    [
+        ".",  # Allow import from the current working dir (works with mpremote mount)
+        "/flash/lib",  # Allow import from mip installed packages.
+    ]
+)
+
+[% if target_port == "stm32" %]
+
+def filesystem_format():
+    """Erase the internal flash and lay down a fresh LFS2 filesystem."""
+    import pyb
+    import vfs
+
+    vfs.VfsLfs2.mkfs(pyb.Flash(start=0))
+
+
+def mount():
+    """Mount the internal flash filesystem at the root."""
+    import pyb
+    import vfs
+
+    flash = pyb.Flash(start=0, len=(64 * 1024))
+    vfs.mount(vfs.VfsLfs2(flash, mtime=False), "/", readonly=False)
+
+
+def filesystem_init():
+    """Mount the filesystem, formatting it as LFS2 if it is missing or FAT.
+
+    MicroPython creates a FAT filesystem on a blank device by default. LFS2 is
+    preferred here for its wear levelling and power-fail behaviour, so an
+    existing FAT filesystem is replaced on first boot.
+    """
+    import vfs
+
+    try:
+        for vfs_obj, mount_point in vfs.mount():
+            if mount_point in ("/", "/flash"):
+                if isinstance(vfs_obj, vfs.VfsFat):
+                    print("FAT filesystem detected, reformatting to LFS2")
+                    vfs.umount(mount_point)
+                    filesystem_format()
+                    mount()
+                    return
+                if isinstance(vfs_obj, vfs.VfsLfs2) and mount_point == "/":
+                    return
+    except (OSError, AttributeError):
+        pass
+
+    try:
+        mount()
+        return
+    except OSError:
+        pass
+
+    print("LFS2 mount failed, reformatting flash")
+    filesystem_format()
+    mount()
+
+
+filesystem_init()
+[% endif %]

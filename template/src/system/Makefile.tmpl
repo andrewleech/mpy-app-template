@@ -1,0 +1,77 @@
+BOARD ?=
+
+# mkenv.mk supplies this on the make-based ports, but it is not included for
+# rp2 and esp32, where the first target in this file would otherwise win.
+.DEFAULT_GOAL := all
+
+BUILD = $(abspath build-$(BOARD))
+
+MICROPY_TOP = $(abspath ../micropython)
+PORT ?= stm32
+
+# Locate the board definition: this project's copy first, then upstream.
+# rp2 and esp32 configure boards in cmake, the rest in make, so the marker
+# file to look for differs.
+[% if target_port in ("rp2", "esp32") %]
+BOARD_CONFIG = mpconfigboard.cmake
+[% else %]
+BOARD_CONFIG = mpconfigboard.mk
+[% endif %]
+BOARD_DIR_LOCAL = $(abspath $(BOARD))
+BOARD_DIR_UPSTREAM = $(MICROPY_TOP)/ports/$(PORT)/boards/$(BOARD)
+
+ifeq ($(wildcard $(BOARD_DIR_LOCAL)/$(BOARD_CONFIG)),)
+  ifeq ($(wildcard $(BOARD_DIR_UPSTREAM)/$(BOARD_CONFIG)),)
+    $(error Board '$(BOARD)' not found. Searched in: $(BOARD_DIR_LOCAL) and $(BOARD_DIR_UPSTREAM). Please ensure the board directory exists or specify a valid BOARD name)
+  else
+    BOARD_DIR = $(BOARD_DIR_UPSTREAM)
+  endif
+else
+  BOARD_DIR = $(BOARD_DIR_LOCAL)
+endif
+
+[% if target_port in ("rp2", "esp32") %]
+# The port makefile drives cmake and reads BOARD_DIR directly; the make-side
+# board config is not ours to include. That also means mkrules.mk is absent,
+# so the `submodules` target it would supply has to be declared here.
+PYTHON ?= python3
+
+.PHONY: submodules
+submodules: submodules_
+[% else %]
+include $(MICROPY_TOP)/py/mkenv.mk
+include $(MICROPY_TOP)/py/mkrules.mk
+include $(BOARD_DIR)/mpconfigboard.mk
+[% endif %]
+
+MPY_LIB_DIR = $(abspath ../libs/micropython-lib)
+MAKE_ARGS = BOARD=$(BOARD) BOARD_DIR=$(BOARD_DIR) BUILD=$(BUILD)
+
+[% if use_mboot %]
+MBOOT_TEXT0_ADDR ?= [[bootloader_address]]
+[%endif%]
+
+submodules_:
+	$(MAKE) -C $(MICROPY_TOP)/ports/$(PORT) $(MAKE_ARGS) submodules
+
+all: submodules_
+	$(MAKE) -C $(MICROPY_TOP)/ports/$(PORT) $(MAKE_ARGS) MPY_LIB_DIR=$(MPY_LIB_DIR) USER_C_MODULES=$(USER_C_MODULES)
+	@echo "firmware available in: $(BUILD)"
+	@sed -En 's/.*MICROPY_GIT_TAG "(.*)"/version: \1/p' "$(BUILD)/genhdr/mpversion.h" > $(BUILD)/version.txt
+	@cat $(BUILD)/version.txt
+	@date
+
+[% if use_mboot %]
+mboot: submodules_
+	@# mboot does not go through the normal version header rule.
+	@mkdir -p $(BUILD)/mboot/genhdr
+	$(PYTHON) $(MICROPY_TOP)/py/makeversionhdr.py $(BUILD)/mboot/genhdr/mpversion.h
+	$(MAKE) -C $(MICROPY_TOP)/ports/$(PORT)/mboot $(MAKE_ARGS)/mboot
+	cd $(BUILD)/mboot; for f in firmware*.*; do cp $$f ../bootloader.$${f##*.}; done
+	@sed -En 's/.*MICROPY_GIT_TAG "(.*)"/version: \1/p' "$(BUILD)/mboot/genhdr/mpversion.h" > $(BUILD)/version.txt
+	@cat $(BUILD)/version.txt
+	@echo "bootloader available in: $(BUILD)/bootloader.(bin|hex|dfu)"
+
+deploy:
+	$(MAKE) -C $(MICROPY_TOP)/ports/$(PORT) $(MAKE_ARGS) deploy
+[%endif%]

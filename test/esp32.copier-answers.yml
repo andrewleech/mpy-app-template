@@ -1,0 +1,16 @@
+# esp32, where mpbuild derives the IDF container version from the checkout.
+_commit: HEAD
+_src_path: ~/mpy-app-template
+_ci: true
+
+project_name: TemplateTestEsp
+project_url: https://github.com/example/template-test.git
+author: Template Test
+license: Apache-2.0
+
+target_port: esp32
+template_board: ESP32_GENERIC
+project_board_name: TEMPLATETESTESP_ESP32_GENERIC
+
+version_scheme: git-describe
+ci_platform: gitlab

@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  checks:
+    name: Static analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uvx pre-commit run --all-files --show-diff-on-failure
+
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    # Resolved from mpbuild by tools/initial_setup.py; `make setup` refreshes it.
+    container: "@UNIX_BUILD_CONTAINER@"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Trust the workspace
+        run: git config --global --add safe.directory '*'
+      - uses: astral-sh/setup-uv@v5
+      - run: make submodules
+      - run: make tests
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: results/
+
+  build:
+    name: Firmware
+    runs-on: ubuntu-latest
+    # Resolved from mpbuild by tools/initial_setup.py; `make setup` refreshes it.
+    container: "@BUILD_CONTAINER@"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Trust the workspace
+        run: git config --global --add safe.directory '*'
+      - uses: astral-sh/setup-uv@v5
+      - run: make submodules
+      - name: Build application
+        run: make system
+[% if use_mboot %]
+      - name: Build bootloader
+        run: make mboot
+[% endif %]
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firmware-[[ project_board_name ]]
+          path: |
+            src/system/build-[[ project_board_name ]]/firmware.*
+[% if use_mboot %]
+            src/system/build-[[ project_board_name ]]/bootloader.*
+[% endif %]
+            src/system/build-[[ project_board_name ]]/version.txt
+          if-no-files-found: error
+
+  release:
+    name: Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [checks, test, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: firmware-[[ project_board_name ]]
+          path: dist
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/**
+          generate_release_notes: true

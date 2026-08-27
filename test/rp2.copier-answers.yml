@@ -1,0 +1,16 @@
+# rp2, which mpbuild builds in a different container tag to the other ARM ports.
+_commit: HEAD
+_src_path: ~/mpy-app-template
+_ci: true
+
+project_name: TemplateTestPico
+project_url: https://github.com/example/template-test.git
+author: Template Test
+license: MIT
+
+target_port: rp2
+template_board: RPI_PICO
+project_board_name: TEMPLATETESTPICO_RPI_PICO
+
+version_scheme: git-versioner
+ci_platform: github

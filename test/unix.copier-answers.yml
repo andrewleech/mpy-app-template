@@ -1,0 +1,14 @@
+# unix, which has no board directory and no bootloader.
+_commit: HEAD
+_src_path: ~/mpy-app-template
+_ci: true
+
+project_name: TemplateTestUnix
+project_url: https://github.com/example/template-test.git
+author: Template Test
+license: none
+
+target_port: unix
+
+version_scheme: git-describe
+ci_platform: github

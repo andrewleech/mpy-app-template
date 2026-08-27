@@ -1,0 +1,72 @@
+
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!micropy.json
+# Byte-compiled / optimized / DLL files
+# C extensions
+# Created by https://www.gitignore.io/api/python,visualstudiocode
+# Distribution / packaging
+# Edit at https://www.gitignore.io/?templates=python,visualstudiocode
+# End of https://www.gitignore.io/api/python,visualstudiocode
+# Environments
+# Ignore all local history of files
+# Ignore vim temporary and swap files
+# OS generated files #
+# Pyre type checker
+# Rope project settings
+# Spyder project settings
+# mkdocs documentation
+# mypy
+### Micropy Cli ###
+### Python ###
+### VisualStudioCode ###
+### VisualStudioCode Patch ###
+######################
+*$py.class
+*.egg
+*.egg-info/
+*.py[cod]
+*.so
+*.sw[a-p]
+*~
+.DS_Store
+.Python
+.claude
+.dmypy.json
+.eggs/
+.env
+.history
+.installed.cfg
+.micropy/
+.mypy_cache/
+.pyre/
+.ropeproject
+.spyderproject
+.spyproject
+.test
+.venv
+.vscode/*
+/site
+ENV/
+MANIFEST
+__pycache__/
+build/
+develop-eggs/
+dist/
+dmypy.json
+downloads/
+eggs/
+env.bak/
+env/
+lib/
+lib64/
+parts/
+pip-wheel-metadata/
+sdist/
+share/python-wheels/
+var/
+venv.bak/
+venv/
+wheels/
