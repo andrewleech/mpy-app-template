@@ -20,13 +20,15 @@ Changes are only meaningful once generated. After editing:
 ./test_template.sh --all         # every variant, slow
 ```
 
-`copier.yaml` carries two generated blocks, both written by `tools/sync_mpbuild.py`: the
-port choices, and a `port_boards` map keyed by port. `template_board` takes its `choices`
-from `port_boards[target_port]`, which is how the board list narrows to the selected port.
-Copier renders `choices` through Jinja, so a question can depend on an earlier answer.
+The port and board questions call into `mpy_app_template/boards.py`, a Jinja extension
+registered in `_jinja_extensions`. Copier renders `choices` through Jinja, so a question can
+call a function and can depend on an earlier answer. Ports come from mpbuild's container
+table, boards from one GitHub tree request against the MicroPython repository, filtered the
+way mpbuild filters them.
 
-`--check` covers only the port list. That one is fixed by the mpbuild version, while board
-lists follow MicroPython and would turn CI red whenever a board lands upstream.
+Copier imports extensions from its own environment, not from the template, which is why
+generation goes through `mpy-new` (`mpy_app_template/cli.py`) and why `test_template.sh` and
+CI both run `uvx --from . mpy-new`. A plain `copier copy` fails on the missing import.
 
 Two traps in path names:
 

@@ -29,7 +29,11 @@ build_variant() {
   dest=$(mktemp -d "${TMPDIR:-/tmp}/mpy_app_template_test_${variant}_XXXXXX")
   echo "=== $variant -> $dest"
 
-  copier copy --trust --vcs-ref HEAD --data-file "$answers" "$TEMPLATE_DIR" "$dest"
+  # Through mpy-new so the run exercises the shipped entry point, and so the
+  # Jinja extension supplying the port and board lists is installed alongside
+  # copier as it is for a real user.
+  uvx --from "$TEMPLATE_DIR" mpy-new \
+    --src "$TEMPLATE_DIR" --vcs-ref HEAD --data-file "$answers" "$dest"
 
   # The unix port has no board, so there is no firmware to build.
   if grep -q "^target_port: unix" "$answers"; then

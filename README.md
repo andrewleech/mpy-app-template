@@ -9,40 +9,36 @@ and Pylance, pre-commit, and CI for GitHub or GitLab.
 ## Creating a project
 
 ```bash
-uv tool install copier
-mkdir my_project && cd my_project
-copier copy --trust --vcs-ref main git@github.com:andrewleech/mpy-app-template.git .
+uvx --from git+https://github.com/andrewleech/mpy-app-template mpy-new my_project
 ```
 
 Answering the questions is the whole setup. `tools/initial_setup.py` then registers the
 submodules, copies the board definition out of MicroPython, works out which containers build
 this port, installs the type stubs and makes the first commit.
 
-To pick up template changes later:
+`mpy-new` is a thin wrapper around `copier copy`. It exists because copier loads Jinja
+extensions from its own environment, and the port and board questions call into one, so
+running it this way gets both installed together.
+
+To pick up template changes later, from inside the project:
 
 ```bash
-copier update --trust --vcs-ref main
+uvx --from git+https://github.com/andrewleech/mpy-app-template copier update --trust
 ```
 
 ## Choosing a port and board
 
 The port question offers what mpbuild can build in a container, and the board question then
 narrows to the boards that port has. Pick `rp2` and you scroll a list of 38 Pico-family
-boards; pick `stm32` and you get 76 of them. Type a few characters to filter.
+boards; pick `stm32` and you get 76. Type a few characters to filter.
 
-Both lists live in `copier.yaml` and come from mpbuild, so the questions work offline and
-answer instantly. Regenerate them with:
+Both lists are read when you answer, so they match MicroPython as it stands rather than
+whenever the template was last touched. Ports come from mpbuild, boards from the MicroPython
+repository using the rule mpbuild itself uses to find them (a directory under
+`ports/<port>/boards/` holding a `board.json`). One request covers every port, so the
+questions stay quick.
 
-```bash
-python3 tools/sync_mpbuild.py                        # ports and boards
-python3 tools/sync_mpbuild.py --micropython ../mpy   # reuse a checkout you already have
-python3 tools/sync_mpbuild.py --check                # what CI runs
-```
-
-The port list is fixed by the mpbuild version, so CI checks it every push. Board lists follow
-MicroPython and get refreshed when you run the script; a board that landed upstream since the
-last refresh is one you can add by hand to `.copier-answers.yml` and pick up with
-`make setup`, which validates it against the tree you actually cloned.
+Set `MPY_BOARDS_REF` to read the boards from a ref other than master.
 
 ## Build containers
 
