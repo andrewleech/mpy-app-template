@@ -2,11 +2,16 @@
 name = "mpy-app-template"
 description = "Copier template for MicroPython application projects"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"  # mpbuild requires 3.12
 dynamic = ["version"]
 dependencies = [
     "copier>=9.4",
     "mpbuild>=1.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
 ]
 
 [project.scripts]
