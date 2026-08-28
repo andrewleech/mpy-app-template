@@ -7,7 +7,7 @@ stages:
 
 variables:
   GIT_SUBMODULE_STRATEGY: none  # Submodules are fetched by `make submodules`.
-  GIT_DEPTH: 0                  # git-versioner needs the tag history.
+  GIT_DEPTH: 0                  # git describe needs the tag history.
   RUN_IN_DOCKER: 0              # Jobs already run inside the toolchain image.
 
 checks:

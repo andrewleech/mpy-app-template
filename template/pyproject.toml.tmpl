@@ -7,7 +7,6 @@ requires-python = ">=3.10"
 [dependency-groups]
 # Host-side development tooling.
 dev = [
-    [% if version_scheme == "git-versioner" %]"git-versioner",[% endif %]
     "micropython-[[ target_port ]]-stubs",
 ]
 

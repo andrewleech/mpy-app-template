@@ -82,10 +82,10 @@ Upstream clears `USER_C_MODULES` and `FROZEN_MANIFEST` in that sub-make
 
 ## Version numbers
 
-Resolved on the host by the generated Makefile and exported as
+`git describe` output, resolved on the host by the generated Makefile and exported as
 `MICROPY_GIT_TAG`/`MICROPY_GIT_HASH`. MicroPython's `makeversionhdr.py` prefers those over
-its own lookups, which is what makes one mechanism work for both build systems and keeps
-version tooling out of the build container.
+its own lookups, which is what makes one mechanism work for both build systems and keeps git
+out of the build container.
 
 An empty `MICROPY_GIT_TAG` is treated by that script as a failure rather than a reason to
 fall back, so it must never be exported or forwarded into a container empty. The Makefile

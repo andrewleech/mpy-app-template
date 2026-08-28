@@ -116,17 +116,6 @@ bootloader_address:
 
 # PROJECT SETTINGS
 
-version_scheme:
-  type: str
-  help: |
-    How the version number is derived.
-       * git-versioner computes the "next" version and provides release tooling.
-       * git-describe uses the previous tag plus commits since.
-  choices:
-    - git-versioner
-    - git-describe
-  default: git-versioner
-
 ci_platform:
   type: str
   help: Which CI configuration to generate.

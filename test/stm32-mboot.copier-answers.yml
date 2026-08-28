@@ -15,5 +15,4 @@ project_board_name: TEMPLATETESTMBOOT_PYBV11
 use_mboot: true
 bootloader_address: '0x08000000'
 
-version_scheme: git-versioner
 ci_platform: both

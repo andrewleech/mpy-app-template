@@ -14,5 +14,4 @@ project_board_name: TEMPLATETESTPLAIN_PYBV11
 
 use_mboot: false
 
-version_scheme: git-describe
 ci_platform: github

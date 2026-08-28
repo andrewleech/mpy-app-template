@@ -12,5 +12,4 @@ target_port: rp2
 template_board: RPI_PICO
 project_board_name: TEMPLATETESTPICO_RPI_PICO
 
-version_scheme: git-versioner
 ci_platform: github

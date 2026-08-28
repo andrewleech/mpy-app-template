@@ -10,5 +10,4 @@ license: none
 
 target_port: unix
 
-version_scheme: git-describe
 ci_platform: github

@@ -469,8 +469,6 @@ def create_initial_commit(answers):
     info("Creating the initial commit")
     run("git", "add", ".")
     message = f"Create {answers['project_name']} from mpy-app-template"
-    if answers.get("version_scheme") == "git-versioner":
-        message += "\n\nCHANGE: major"
     run("git", *_identity_args(answers), "commit", "-m", message, "--no-verify")
     run("git", "tag", "v0.0.1")
     print(run("git", "log", "-1", "--oneline", capture=True).stdout, end="")

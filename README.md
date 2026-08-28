@@ -96,11 +96,10 @@ the box and mboot as a standard ST DFU device.
 
 ## Versions
 
-[git-versioner](https://pypi.org/project/git-versioner/) or `git describe`, your pick at
-generation time. Either way the version is worked out on the host and handed to the build
-through `MICROPY_GIT_TAG` / `MICROPY_GIT_HASH`, which is what lets one mechanism cover the
-make-based ports and the cmake ones (rp2, esp32) alike, and keeps the version tooling out of
-the container.
+Generated projects take their version from `git describe`, worked out on the host and handed
+to the build through `MICROPY_GIT_TAG` / `MICROPY_GIT_HASH`. That is what lets one mechanism
+cover the make-based ports and the cmake ones (rp2, esp32) alike, and keeps git out of the
+container.
 
 ```python
 import version

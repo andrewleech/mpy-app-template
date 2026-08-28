@@ -55,15 +55,15 @@ starts the application, `device.py` owns the event loop and task list,
 
 ## Versioning
 
-[% if version_scheme == "git-versioner" %][git-versioner](https://pypi.org/project/git-versioner/)
-derives the version from git. On a tag it is used as-is; otherwise the semantic
-version is incremented. Control the increment with a `CHANGE: major|minor|patch`
-commit footer, or the `VERSION_INCREMENT` environment variable.
+The version is `git describe` output against tags matching `v[0-9]*`, so
+`v1.2.0` on a tagged commit and `v1.2.0-4-gabc1234` four commits later. Tag a
+commit to make a release build.
 
-The version is resolved on the host and passed into the build container through
-`MICROPY_GIT_TAG`/`MICROPY_GIT_HASH`, so the container needs no project
-packages.[% else %]The version is `git describe` output: `<tag>-<commits>-g<hash>`.
-Tag a commit to make a release build.[% endif %]
+It is resolved on the host and passed into the build through
+`MICROPY_GIT_TAG` / `MICROPY_GIT_HASH`, which MicroPython's own
+`makeversionhdr.py` prefers over its internal lookups. One mechanism covers the
+make-based ports and the cmake ones alike, and git stays out of the build
+container.
 
 ```python
 import version

@@ -8,7 +8,7 @@ repos:
       - id: ruff-format
       - id: ruff
         args: [--fix]
-        additional_dependencies: [git-versioner, types-PyYAML, micropython-stm32-stubs]
+        additional_dependencies: [types-PyYAML, micropython-stm32-stubs]
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.18.2
@@ -20,7 +20,7 @@ repos:
         entry: bash -c 'mypy "$@" || true' --
         exclude: ^src/libs/typing\.py$|\.tmpl$
         args: [--junit-xml, mypy.xml]
-        additional_dependencies: [git-versioner, types-PyYAML, micropython-stm32-stubs, lxml]
+        additional_dependencies: [types-PyYAML, micropython-stm32-stubs, lxml]
 
   - repo: https://github.com/adrienverge/yamllint.git
     rev: v1.33.0

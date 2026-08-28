@@ -12,5 +12,4 @@ target_port: esp32
 template_board: ESP32_GENERIC
 project_board_name: TEMPLATETESTESP_ESP32_GENERIC
 
-version_scheme: git-describe
 ci_platform: gitlab

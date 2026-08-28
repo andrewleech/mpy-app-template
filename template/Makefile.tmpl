@@ -43,19 +43,13 @@ export MICROPY_MPYCROSS := $(MPY_CROSS)
 # Build containers, resolved from mpbuild by tools/initial_setup.py.
 include $(PROJECT_BASE)/src/system/build_containers.mk
 
-# Resolve the version on the host and hand it to the build through the
-# environment. MicroPython's makeversionhdr.py prefers these over its own
-# lookups, which is what lets a project version reach both the make-based and
-# the cmake-based ports without any per-port machinery, and keeps the version
-# tooling out of the build container.
-[% if version_scheme == 'git-versioner' %]
-MPY_VERSION := $(shell PROJECT_ROOT="$(PROJECT_BASE)" uv run --quiet --no-project \
-  --with git-versioner python -c \
-  'import __version__; print(__version__.version, __version__.git_hash)' 2>/dev/null)
-[% else %]
+# The version is `git describe` output, resolved on the host and handed to the
+# build through the environment. MicroPython's makeversionhdr.py prefers these
+# over its own lookups, which is what lets a project version reach both the
+# make-based and the cmake-based ports without any per-port machinery, and
+# keeps git out of the build container.
 MPY_VERSION := $(shell git -C "$(PROJECT_BASE)" describe --tags --always --dirty \
   --match 'v[0-9]*' 2>/dev/null) $(shell git -C "$(PROJECT_BASE)" rev-parse --short HEAD 2>/dev/null)
-[% endif %]
 # Left unset when the lookup fails: makeversionhdr.py treats a present but
 # empty MICROPY_GIT_TAG as a failure rather than falling back.
 ifneq ($(words $(MPY_VERSION)),2)
