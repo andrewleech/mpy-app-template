@@ -23,7 +23,7 @@ fw_footer_section: $(BUILD)/firmware.elf
 	$(Q)$(OBJCOPY) --rename-section .fw_footer=.text $^ $(BUILD)/firmware.1.elf
 	@mv $(BUILD)/firmware.1.elf $^
 
-$(BUILD)/firmware.dfu: | fw_footer_section
+$(BUILD)/firmware.bin: | fw_footer_section
 
 endif
 [%endif%]
