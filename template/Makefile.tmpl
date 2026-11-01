@@ -264,7 +264,7 @@ run-unix: unix-port unix-frozen-code
 tests:  ## Execute unit tests (inside the unix port). Set 'test=test_one' to run a single unit test suite.
 tests: unix-port unix-frozen-code
 ifeq ($(RUN_IN_DOCKER), 1)
-	$(DOCKER_UNIX) make $@
+	$(DOCKER_UNIX) make $@ $(if $(test),test=$(test))
 else
 	@echo "-----------------------------------"
 	@echo "$(BOLD)Execute unit tests...$(RESET)"
