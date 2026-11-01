@@ -1,4 +1,4 @@
-# MicroPython CLAUDE.md
+# MicroPython AGENTS.md
 This file provides context for AI coding agents working on the MicroPython codebase.
 
 ## Build Commands

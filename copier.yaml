@@ -1,6 +1,7 @@
 # CONFIGURATION
 _subdirectory: template
 _min_copier_version: 9.0.0
+_preserve_symlinks: true
 _templates_suffix: .tmpl
 
 _message_before_copy: |
