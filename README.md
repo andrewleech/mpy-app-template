@@ -70,9 +70,9 @@ make repl-unix   # REPL on the unix port with simulated hardware
 make run-unix    # run the application on the unix port
 ```
 
-`src/unix/simulation` holds stand-ins for the hardware modules the application imports, sized
-to what the application actually touches. Grow it alongside `hardware.py`, and keep anything
-that depends on real peripheral behaviour in an on-target test.
+`src/unix/simulation/machine.py` re-exports micropython-mock-machine, which models Pin, I2C, SPI,
+UART, ADC, PWM and more for the unix port and unit tests. Keep anything that depends on real
+peripheral behaviour in an on-target test.
 
 ## The generated application
 

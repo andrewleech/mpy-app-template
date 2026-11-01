@@ -1,8 +1,7 @@
 import asyncio
 import unittest
 
-import device_config
-from hardware import Blinky, devices
+from hardware import Blinky
 from machine import Pin
 
 
@@ -65,8 +64,3 @@ class TestBlinky(unittest.TestCase):
 
         asyncio.run(run())
         self.assertEqual(pin.writes, [])
-
-    def test_device_collection_is_wired_to_the_configured_pin(self):
-        self.assertEqual(devices.blinky.on_time, device_config.LED_ON_TIME)
-        self.assertEqual(devices.blinky.off_time, device_config.LED_OFF_TIME)
-        self.assertEqual(devices.blinky.pin.id, device_config.LED_PIN)

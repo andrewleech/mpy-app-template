@@ -42,6 +42,10 @@ SUBMODULES = (
         "src/libs/micropython_unittest_junit",
         "https://gitlab.com/alelec/micropython_unittest_junit.git",
     ),
+    (
+        "src/libs/micropython-mock-machine",
+        "https://github.com/planetinnovation/micropython-mock-machine.git",
+    ),
 )
 
 _BOOTSTRAP_ENV = "MPY_TEMPLATE_SETUP_BOOTSTRAPPED"

@@ -10,3 +10,5 @@ freeze(".", ("typing.py"), opt=0)
 # unittest is only needed where the tests run, which is the unix port.
 if not options.platform_baremetal:
     include("micropython_unittest_junit/manifest.py")
+    # Test double for the machine module, used by src/unix/simulation.
+    freeze("micropython-mock-machine", "mock_machine.py")
